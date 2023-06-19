@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "metalinks-webapp"
+version = "0.1.0"
+description = ""
+authors = ["EliasFarr <49950471+EliasFarr@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "metalinks_webapp"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+graphviz = "^0.20.1"
+streamlit = { version = "^1.23.1", python = ">=3.7,<3.9.7 || >3.9.7,<4.0" }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
