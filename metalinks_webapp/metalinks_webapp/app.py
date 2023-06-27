@@ -6,8 +6,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
+import json
 sys.path.append('..')
-from aux import create_graph
+# from aux import create_graph
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title='Metalinks Web App', layout='wide')
 
@@ -29,7 +31,6 @@ st.markdown(favicon_html, unsafe_allow_html=True)
 
 st.sidebar.image(logo_image, use_column_width=True)
 
-selected_purpose = st.sidebar.select_slider("Select purpose", ["Contextualize", "Investigate"])
 
 n4j = Neo4jController(
     st.secrets["neo4j_uri"],
@@ -37,29 +38,33 @@ n4j = Neo4jController(
     st.secrets["neo4j_password"],
 )
 
-if selected_purpose == "Contextualize":
 
 
-    st.sidebar.write("Select your parameters for contextualization")
-    cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
-    tissue_locations = st.sidebar.text_input("Enter tissue locations (separated by commas)", "Kidney, All Tissues")
-    biospecimen_locations = st.sidebar.text_input("Enter biospecimen locations (separated by commas)", "Urine, Blood")
-    database_range = st.sidebar.slider("Select a range STITCH database score", min_value=0, max_value=1000, value=(150, 1000))
-    experiment_range = st.sidebar.slider("Select a range STITCH experimental score", min_value=0, max_value=1000, value=(150, 1000))
 
-    if st.sidebar.button("Get Subgraph"):
-        cellular_locations_list = [loc.strip() for loc in cellular_locations.split(",")]
-        tissue_locations_list = [loc.strip() for loc in tissue_locations.split(",")]
-        biospecimen_locations_list = [loc.strip() for loc in biospecimen_locations.split(",")]
+st.sidebar.write("Select your parameters for contextualization")
+cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
+tissue_locations = st.sidebar.text_input("Enter tissue locations (separated by commas)", "Kidney, All Tissues")
+biospecimen_locations = st.sidebar.text_input("Enter biospecimen locations (separated by commas)", "Urine, Blood")
+database_cutoff = st.sidebar.slider("Select cutoff for STITCH database score", 0, 1000, 993)
+experiment_cutoff = st.sidebar.slider("Select cutoff for STITCH experimental score", 0, 1000, 993)
 
+selected_purpose = st.sidebar.select_slider("Select visualization", ["Table", "Graph"])
+
+if st.sidebar.button("Get Subgraph"):
+    cellular_locations_list = [loc.strip() for loc in cellular_locations.split(",")]
+    tissue_locations_list = [loc.strip() for loc in tissue_locations.split(",")]
+    biospecimen_locations_list = [loc.strip() for loc in biospecimen_locations.split(",")]
+
+    if selected_purpose == "Table":
+         
         subgraph = n4j.get_subgraph(
             cellular_locations_list,
             tissue_locations_list,
             biospecimen_locations_list,
-            database_range,
-            experiment_range
+            database_cutoff,
+            experiment_cutoff, 
+            output="table"
         )
-
         # Prepare the data for the dataframe
         data = []
         for record in subgraph:
@@ -67,15 +72,15 @@ if selected_purpose == "Contextualize":
                 'HMDB': record['HMDB'],
                 'MetName': record['MetName'],
                 'Protein': record['Symbol'],
+                'ProtName': record['ProtName'],
                 'CellLoc': record['CellLoc'],
                 'TissueLoc': record['TissueLoc'],
                 'BiospecLoc': record['BiospecLoc'],
                 'Mode': record['Mode'],
-                'Direction': record['Direction'],
-                'Status': record['Status'],
                 'Uniprot': record['Uniprot'],
-                'ProtName': record['ProtName'],
-                'Protein': record['Symbol'],  # Include the protein symbol
+                'DatabaseScore': record['Database'],
+                'ExperimentalScore': record['Experiment']
+
             })
 
         # Create the dataframe
@@ -103,15 +108,14 @@ if selected_purpose == "Contextualize":
         # Summary table
         with col1:
             summary_data = {
-                'Metrics': ['Number of Interactions', 'Number of Unique Metabolite Ligands', 'Number of Unique Protein Receptors'],
+                'Metrics': ['Number of Interactions', 'Number of unique metabolite ligands', 'Number of unique protein receptors'],
                 'Values': [num_rows, num_unique_metabolites, num_unique_proteins]
             }
             summary_df = pd.DataFrame(summary_data)
 
-            style = summary_df.style.hide_index()
-            style.hide_columns()
+            style = summary_df.style.hide(axis="index")
+            style.hide(axis="columns")
             st.write(style.to_html(), unsafe_allow_html=True)
-            #st.table(summary_df)
 
 
         # Bar chart - CellLoc
@@ -150,46 +154,98 @@ if selected_purpose == "Contextualize":
             ax_biospecloc.set_xticklabels(ax_biospecloc.get_xticklabels(), rotation=45, ha='right')
             st.pyplot(fig_biospecloc)
 
-elif selected_purpose == "Investigate":
+    elif selected_purpose == "Graph":
 
-    st.sidebar.write("Select proteins or metabolites to investigate")
+        subgraph = n4j.get_subgraph(            
+            cellular_locations_list,
+            tissue_locations_list,
+            biospecimen_locations_list,
+            database_cutoff,
+            experiment_cutoff, 
+            output="graph")
+    
 
+        # components.html(
+        
+        html_code = ''' 
+        <head>
+            <script src="https://cdn.drugst.one/latest/drugstone.js"></script>
+            <link rel="stylesheet" href="https://cdn.drugst.one/latest/styles.css">
+        </head>
 
-    # add switch for metabolites or proteins
-    selected_entity = st.sidebar.select_slider('Select entity', ['Metabolites', 'Proteins'])
+        <drugst-one
+            id='drugstone-component-id'
+            groups='{
+                "nodeGroups":{
+                "gene":{"type":"gene","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Gene","shape":"circle"},
+                "foundDrug":{"type":"drug","color":"#932a61","font":{"color":"#000000"},"groupName":"Drug","shape":"diamond"}},
+                "edgeGroups":{"default":{"color":"#000000","groupName":"default edge"},
+                "metabolite":{"type":"drug","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Drug","shape":"diamond"}
+                }}'
+            config='{
+                "identifier":"symbol",
+                "title":"MetalinksKG - metabolite-mediated cell-cell communication",
+                "nodeShadow":true,
+                "edgeShadow":false,
+                showSidebar: "right",
+                showOverview: true,
+                showQuery: true,
+                showItemSelector: true,
+                showSimpleAnalysis: false,
+                showAdvAnalysis: false,
+                showConnectGenes: false,
+                showSelection: false,
+                showTasks: false,
+                showNetworkMenu: false,
+                "autofillEdges":false,
+                "interactionDrugProtein":"ChEMBL",
+                "activateNetworkMenuButtonAdjacentDrugs":false,
+                "physicsOn":false,
+                "activateNetworkMenuButtonAdjacentDisorderDrugs":false}'
+            network='{}'>
 
-    if selected_entity == 'Metabolites':
+            
+        </drugst-one>
 
-        # put two text input for metabolites and proteins
-        metabolite_string = st.sidebar.text_input("Enter metabolite IDs (separated by commas)", "HMDB0000220, HMDB0000895")
-        cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular")
-        tissue_locations = st.sidebar.text_input("Enter tissue locations (separated by commas)", "Kidney, All Tissues")
-        biospecimen_locations = st.sidebar.text_input("Enter biospecimen locations (separated by commas)", "Urine, Blood")
-        database_range = st.sidebar.slider("Select a range for STITCH database score", min_value=0, max_value=1000, value=(150, 1000))
-        experiment_range = st.sidebar.slider("Select a range for STITCH experimetal score", min_value=0, max_value=1000, value=(150, 1000))
+        <style>
+        :root {
+            --drgstn-primary: #932a61;
+            --drgstn-secondary: #512D55;
+            --drgstn-success: #48C774;
+            --drgstn-warning: #ffdd00;
+            --drgstn-danger: #ff2744;
+            --drgstn-background: #f8f9fa;
+            --drgstn-panel: #ffffff;
+            --drgstn-info: #61c43d;
+            --drgstn-text-primary: #151515;
+            --drgstn-text-secondary: #eeeeee;
+            --drgstn-border: rgba(0, 0, 0, 0.2);
+            --drgstn-tooltip: rgba(74, 74, 74, 0.9);
+            --drgstn-panel-secondary: #FFFFFF;
+            --drgstn-height: 800px;
+            --drgstn-font-family: Helvetica Neue, sans-serif;
+        }
+        </style>
+        '''
+   
+        nodes = subgraph[0]
+        nodes.extend(subgraph[1])
+        network_data = {
+            "nodes": nodes,
+            "edges": subgraph[2]
+        }
+        html_code = html_code.replace("'{}'", json.dumps(network_data))
+        html_code = html_code.replace("network={","network='{")
+        html_code = html_code.replace("}]}>", "}]}'>")
+        st.components.v1.html(html_code, height=1200, width=1200)
 
-        if st.sidebar.button("Get Subgraph"):
-
-            metabolite_ids = [met.strip() for met in metabolite_string.split(",")]
-            cellular_locations_list = [loc.strip() for loc in cellular_locations.split(",")]
-            tissue_locations_list = [loc.strip() for loc in tissue_locations.split(",")]
-            biospecimen_locations_list = [loc.strip() for loc in biospecimen_locations.split(",")]
-
-            met_graph = n4j.get_metabolite_graph(metabolite_ids, cellular_locations_list, tissue_locations_list, biospecimen_locations_list, database_range, experiment_range)
-
-            graph = create_graph(met_graph)
-
-            # Render the graph using Graphviz
-            st.graphviz_chart(graph.source)
- 
-    if selected_entity == 'Proteins':
-
-        protein_ids = st.sidebar.text_input("Enter protein IDs (separated by commas)", "P02768, P02769")
-
-        prot_graph = n4j.get_protein_graph(protein_ids)
-
-
-
-
-
-
+                # "showOverview": true,
+                # "showQuery": False,
+                # "showItemSelector": true,
+                # "showSimpleAnalysis": false,
+                # "showAdvAnalysis": true,
+                # "showSelection": true,
+                # "showTasks": off,
+                # "showNetworkMenu": off,
+                # "showLegend": true,
+                # "showConnectGenes": false,
