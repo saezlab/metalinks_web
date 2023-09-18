@@ -38,9 +38,6 @@ n4j = Neo4jController(
     st.secrets["neo4j_password"],
 )
 
-
-
-
 st.sidebar.write("Select your parameters for contextualization")
 cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
 tissue_locations = st.sidebar.text_input("Enter tissue locations (separated by commas)", "Kidney, All Tissues")
