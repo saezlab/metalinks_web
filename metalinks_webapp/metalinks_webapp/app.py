@@ -62,42 +62,60 @@ if st.sidebar.button("Get Subgraph"):
             experiment_cutoff, 
             output="table"
         )
+        print(subgraph)
+
+        # rename columsn of subgraph according to:
+             #         'HMDB': record['HMDB'],
+        #         'MetName': record['MetName'],
+        #         'Protein': record['Symbol'],
+        #         'ProtName': record['ProtName'],
+        #         'CellLoc': record['CellLoc'],
+        #         'TissueLoc': record['TissueLoc'],
+        #         'BiospecLoc': record['BiospecLoc'],
+        #         'Mode': record['Mode'],
+        #         'Uniprot': record['Uniprot'],
+        #         'DatabaseScore': record['Database'],
+        #         'ExperimentalScore': record['Experiment']
+
+        subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore'}, inplace=True)
+
+
+
+
         # Prepare the data for the dataframe
-        data = []
-        for record in subgraph:
-            data.append({
-                'HMDB': record['HMDB'],
-                'MetName': record['MetName'],
-                'Protein': record['Symbol'],
-                'ProtName': record['ProtName'],
-                'CellLoc': record['CellLoc'],
-                'TissueLoc': record['TissueLoc'],
-                'BiospecLoc': record['BiospecLoc'],
-                'Mode': record['Mode'],
-                'Uniprot': record['Uniprot'],
-                'DatabaseScore': record['Database'],
-                'ExperimentalScore': record['Experiment']
+        # data = []
+        # for record in subgraph:
+        #     data.append({
+        #         'HMDB': record['HMDB'],
+        #         'MetName': record['MetName'],
+        #         'Protein': record['Symbol'],
+        #         'ProtName': record['ProtName'],
+        #         'CellLoc': record['CellLoc'],
+        #         'TissueLoc': record['TissueLoc'],
+        #         'BiospecLoc': record['BiospecLoc'],
+        #         'Mode': record['Mode'],
+        #         'Uniprot': record['Uniprot'],
+        #         'DatabaseScore': record['Database'],
+        #         'ExperimentalScore': record['Experiment']
 
-            })
+        #     })
 
-        # Create the dataframe
-        df = pd.DataFrame(data)
+        # # Create the dataframe
+        # df = pd.DataFrame(data)
 
-        print(df['HMDB'])
-
-        st.dataframe(df)
+        st.dataframe(subgraph)
         
         # Download button
-        csv = df.to_csv(index=False)
+        csv = subgraph.to_csv(index=False)
         b64 = base64.b64encode(csv.encode()).decode()  # Convert DataFrame to base64 encoding
         href = f'<a href="data:file/csv;base64,{b64}" download="metalinks_data.csv">Download CSV</a>'
         st.markdown(href, unsafe_allow_html=True)
 
 
         # Summary box
-        num_rows = len(df.index)
-        num_unique_metabolites = df['HMDB'].nunique()
-        num_unique_proteins = df['Protein'].nunique()
+        num_rows = len(subgraph.index)
+        num_unique_metabolites = subgraph['HMDB'].nunique()
+        num_unique_proteins = subgraph['Protein'].nunique()
 
         col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
@@ -119,8 +137,8 @@ if st.sidebar.button("Get Subgraph"):
 
         # Bar chart - CellLoc
         with col2:
-            cellloc_counts = df['CellLoc'].explode().value_counts()
-            cellloc_percentages = cellloc_counts / len(df) * 100
+            cellloc_counts = subgraph['CellLoc'].explode().value_counts()
+            cellloc_percentages = cellloc_counts / len(subgraph) * 100
 
             fig_cellloc, ax_cellloc = plt.subplots(figsize=(6, 4), facecolor='white')
             sns.barplot(x=cellloc_percentages.index, y=cellloc_percentages.values, ax=ax_cellloc, palette=colors)
@@ -131,8 +149,8 @@ if st.sidebar.button("Get Subgraph"):
 
         # Bar chart - TissueLoc
         with col3:
-            tissueloc_counts = df['TissueLoc'].explode().value_counts()
-            tissueloc_percentages = tissueloc_counts / len(df) * 100
+            tissueloc_counts = subgraph['TissueLoc'].explode().value_counts()
+            tissueloc_percentages = tissueloc_counts / len(subgraph) * 100
 
             fig_tissueloc, ax_tissueloc = plt.subplots(figsize=(6, 4), facecolor='white')
             sns.barplot(x=tissueloc_percentages.index, y=tissueloc_percentages.values, ax=ax_tissueloc, palette=colors)
@@ -143,8 +161,8 @@ if st.sidebar.button("Get Subgraph"):
 
         # Bar chart - BiospecLoc
         with col4:
-            biospecloc_counts = df['BiospecLoc'].explode().value_counts()
-            biospecloc_percentages = biospecloc_counts / len(df) * 100
+            biospecloc_counts = subgraph['BiospecLoc'].explode().value_counts()
+            biospecloc_percentages = biospecloc_counts / len(subgraph) * 100
 
             fig_biospecloc, ax_biospecloc = plt.subplots(figsize=(6, 4), facecolor='white')
             sns.barplot(x=biospecloc_percentages.index, y=biospecloc_percentages.values, ax=ax_biospecloc, palette=colors)

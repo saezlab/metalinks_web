@@ -1,4 +1,5 @@
 from neo4j import GraphDatabase, unit_of_work
+import pandas as pd
 
 class Neo4jController:
     
@@ -75,7 +76,11 @@ class Neo4jController:
                 biospecimen_locations=biospecimen_locations
             )
 
-            return result.data()
+            # return result.data()
+
+            df = pd.DataFrame(result.data())
+
+            return df
         
         elif output == "graph":
 
