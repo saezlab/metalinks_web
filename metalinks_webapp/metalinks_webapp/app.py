@@ -83,6 +83,8 @@ if st.sidebar.button("Get Subgraph"):
         # Create the dataframe
         df = pd.DataFrame(data)
 
+        print(df)
+
         st.dataframe(df)
         
         # Download button

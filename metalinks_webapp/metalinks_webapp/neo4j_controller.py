@@ -1,5 +1,4 @@
 from neo4j import GraphDatabase, unit_of_work
-from graphviz import Digraph
 
 class Neo4jController:
     
