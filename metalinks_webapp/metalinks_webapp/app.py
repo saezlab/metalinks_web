@@ -62,46 +62,8 @@ if st.sidebar.button("Get Subgraph"):
             experiment_cutoff, 
             output="table"
         )
-        print(subgraph)
-
-        # rename columsn of subgraph according to:
-             #         'HMDB': record['HMDB'],
-        #         'MetName': record['MetName'],
-        #         'Protein': record['Symbol'],
-        #         'ProtName': record['ProtName'],
-        #         'CellLoc': record['CellLoc'],
-        #         'TissueLoc': record['TissueLoc'],
-        #         'BiospecLoc': record['BiospecLoc'],
-        #         'Mode': record['Mode'],
-        #         'Uniprot': record['Uniprot'],
-        #         'DatabaseScore': record['Database'],
-        #         'ExperimentalScore': record['Experiment']
 
         subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore'}, inplace=True)
-
-
-
-
-        # Prepare the data for the dataframe
-        # data = []
-        # for record in subgraph:
-        #     data.append({
-        #         'HMDB': record['HMDB'],
-        #         'MetName': record['MetName'],
-        #         'Protein': record['Symbol'],
-        #         'ProtName': record['ProtName'],
-        #         'CellLoc': record['CellLoc'],
-        #         'TissueLoc': record['TissueLoc'],
-        #         'BiospecLoc': record['BiospecLoc'],
-        #         'Mode': record['Mode'],
-        #         'Uniprot': record['Uniprot'],
-        #         'DatabaseScore': record['Database'],
-        #         'ExperimentalScore': record['Experiment']
-
-        #     })
-
-        # # Create the dataframe
-        # df = pd.DataFrame(data)
 
         st.dataframe(subgraph)
         

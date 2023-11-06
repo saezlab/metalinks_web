@@ -80,6 +80,8 @@ class Neo4jController:
 
             df = pd.DataFrame(result.data())
 
+            assert df.shape[0] > 0, "No results found for the given parameters. Please try again."
+
             return df
         
         elif output == "graph":
