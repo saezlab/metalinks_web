@@ -31,7 +31,6 @@ st.markdown(favicon_html, unsafe_allow_html=True)
 
 st.sidebar.image(logo_image, use_column_width=True)
 
-
 n4j = Neo4jController(
     st.secrets["neo4j_uri"],
     st.secrets["neo4j_user"],
@@ -39,31 +38,52 @@ n4j = Neo4jController(
 )
 
 st.sidebar.write("Select your parameters for contextualization")
-cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
-tissue_locations = st.sidebar.text_input("Enter tissue locations (separated by commas)", "Kidney, All Tissues")
-biospecimen_locations = st.sidebar.text_input("Enter biospecimen locations (separated by commas)", "Urine, Blood")
+# cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
+cellular_locations = st.sidebar.multiselect("Select cellular locations", 
+                                            ["Cytoplasm", "Endoplasmic reticulum", "Extracellular", "Golgi apparatus", 
+                                            "Lysosome", "Membrane", "Mitochondria", "Nucleus", "Peroxisome"]
+                                              )
+
+tissue_locations = st.sidebar.multiselect('Select tissue locations', ["Adipose Tissue", "Adrenal Cortex", "Adrenal Gland", "Adrenal Medulla",
+                                                                     "Bladder", "Brain", "Epidermis", "Fibroblasts", "Heart", "Intestine", 
+                                                                     "Kidney", "Leukocyte", "Lung", "Neuron", "Ovary", "Pancreas", "Placenta",
+                                                                      "Platelet", "Prostate", "Skeletal Muscle", "Spleen", "Testis", "Thyroid Gland"])
+
+biospecimen_locations = st.sidebar.multiselect('Select biospecimen locations', ['Blood', 'Urine', 'Saliva', 'Cerebrospinal Fluid',
+                                                                                'Feces', 'Sweat', 'Breast Milk', 'Bile', 'Amniotic Fluid'] )
+
 database_cutoff = st.sidebar.slider("Select cutoff for STITCH database score", 0, 1000, 993)
+
 experiment_cutoff = st.sidebar.slider("Select cutoff for STITCH experimental score", 0, 1000, 993)
 
-selected_purpose = st.sidebar.select_slider("Select visualization", ["Table", "Graph"])
+selected_purpose = st.sidebar.radio("Select purpose", ["Table", "Graph"])
 
-if st.sidebar.button("Get Subgraph"):
-    cellular_locations_list = [loc.strip() for loc in cellular_locations.split(",")]
-    tissue_locations_list = [loc.strip() for loc in tissue_locations.split(",")]
-    biospecimen_locations_list = [loc.strip() for loc in biospecimen_locations.split(",")]
+
+if st.sidebar.button("Retrieve"):
+
+    progress_text = "Operation in progress. Please wait."
+    my_bar = st.progress(0, text=progress_text)
 
     if selected_purpose == "Table":
+
+        my_bar.progress(20, text='loading data')
          
         subgraph = n4j.get_subgraph(
-            cellular_locations_list,
-            tissue_locations_list,
-            biospecimen_locations_list,
+            cellular_locations,
+            tissue_locations,
+            biospecimen_locations,
             database_cutoff,
             experiment_cutoff, 
             output="table"
         )
 
+        my_bar.progress(80, text='PROCESSING')
+
+
         subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore'}, inplace=True)
+
+        my_bar.progress(100, text='DONE')
+        my_bar.empty()
 
         st.dataframe(subgraph)
         
@@ -136,9 +156,9 @@ if st.sidebar.button("Get Subgraph"):
     elif selected_purpose == "Graph":
 
         subgraph = n4j.get_subgraph(            
-            cellular_locations_list,
-            tissue_locations_list,
-            biospecimen_locations_list,
+            cellular_locations,
+            tissue_locations,
+            biospecimen_locations,
             database_cutoff,
             experiment_cutoff, 
             output="graph")
@@ -228,3 +248,6 @@ if st.sidebar.button("Get Subgraph"):
                 # "showNetworkMenu": off,
                 # "showLegend": true,
                 # "showConnectGenes": false,
+
+url = 'https://github.com/biocypher/metalinks'
+st.sidebar.markdown(f'[Documentation]({url})')
