@@ -41,20 +41,25 @@ st.sidebar.write("Select your parameters for contextualization")
 # cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
 cellular_locations = st.sidebar.multiselect("Select cellular locations", 
                                             ["Cytoplasm", "Endoplasmic reticulum", "Extracellular", "Golgi apparatus", 
-                                            "Lysosome", "Membrane", "Mitochondria", "Nucleus", "Peroxisome"]
+                                            "Lysosome", "Membrane", "Mitochondria", "Nucleus", "Peroxisome"], 
+                                            default=["Extracellular"]
                                               )
 
-tissue_locations = st.sidebar.multiselect('Select tissue locations', ["Adipose Tissue", "Adrenal Cortex", "Adrenal Gland", "Adrenal Medulla",
+tissue_locations = st.sidebar.multiselect('Select tissue locations', ["Adipose Tissue", "Adrenal Cortex", "Adrenal Gland", "Adrenal Medulla", "All Tissues",
                                                                      "Bladder", "Brain", "Epidermis", "Fibroblasts", "Heart", "Intestine", 
                                                                      "Kidney", "Leukocyte", "Lung", "Neuron", "Ovary", "Pancreas", "Placenta",
-                                                                      "Platelet", "Prostate", "Skeletal Muscle", "Spleen", "Testis", "Thyroid Gland"])
+                                                                      "Platelet", "Prostate", "Skeletal Muscle", "Spleen", "Testis", "Thyroid Gland"],
+                                                                      default=["Kidney", "All Tissues"])
 
 biospecimen_locations = st.sidebar.multiselect('Select biospecimen locations', ['Blood', 'Urine', 'Saliva', 'Cerebrospinal Fluid',
-                                                                                'Feces', 'Sweat', 'Breast Milk', 'Bile', 'Amniotic Fluid'] )
+                                                                                'Feces', 'Sweat', 'Breast Milk', 'Bile', 'Amniotic Fluid'],
+                                                                                default=['Blood'] )
 
 database_cutoff = st.sidebar.slider("Select cutoff for STITCH database score", 0, 1000, 993)
 
 experiment_cutoff = st.sidebar.slider("Select cutoff for STITCH experimental score", 0, 1000, 993)
+
+include_exo = st.sidebar.checkbox("Include exogenous metabolites", value=False)
 
 selected_purpose = st.sidebar.radio("Select purpose", ["Table", "Graph"])
 
@@ -74,6 +79,7 @@ if st.sidebar.button("Retrieve"):
             biospecimen_locations,
             database_cutoff,
             experiment_cutoff, 
+            include_exo,
             output="table"
         )
 
@@ -155,15 +161,18 @@ if st.sidebar.button("Retrieve"):
 
     elif selected_purpose == "Graph":
 
+        my_bar.progress(20, text='loading data')
+
         subgraph = n4j.get_subgraph(            
             cellular_locations,
             tissue_locations,
             biospecimen_locations,
             database_cutoff,
             experiment_cutoff, 
+            include_exo,
             output="graph")
     
-
+        my_bar.progress(80, text='PROCESSING')
         # components.html(
         
         html_code = ''' 
@@ -236,6 +245,10 @@ if st.sidebar.button("Retrieve"):
         html_code = html_code.replace("'{}'", json.dumps(network_data))
         html_code = html_code.replace("network={","network='{")
         html_code = html_code.replace("}]}>", "}]}'>")
+
+        my_bar.progress(100, text='DONE')
+        my_bar.empty()
+
         st.components.v1.html(html_code, height=1200, width=1200)
 
                 # "showOverview": true,

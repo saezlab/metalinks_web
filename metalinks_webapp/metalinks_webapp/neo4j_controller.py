@@ -24,6 +24,7 @@ class Neo4jController:
     biospecimen_locations,
     database_cutoff,
     experiment_cutoff, 
+    include_exo,
     output="table"
 ):
         with self.__driver.session() as session:
@@ -34,6 +35,7 @@ class Neo4jController:
                 biospecimen_locations,
                 database_cutoff,
                 experiment_cutoff, 
+                include_exo,
                 output
             )
             return result
@@ -47,36 +49,80 @@ class Neo4jController:
         biospecimen_locations,
         database_cutoff,
         experiment_cutoff, 
+        include_exo,
         output
     ):
-        if output == "table":
+        
+        cypher_conditions = [
+            "MATCH (m)-[a]->(p:Protein)",
+            "WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))",
+            "AND type(a) = 'StitchMetaboliteReceptor'",
+            "AND NOT a.mode IN ['reaction', 'catalysis', 'expression', 'pred_bind', 'binding']",
+        ]
+
+        if include_exo:
+
+
+            if len(cellular_locations) > 0:
+                cypher_conditions.append("AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)")
+
+            if len(tissue_locations) > 0:   
+
+                cypher_conditions.append("AND (ANY(value IN m.tissue_locations WHERE value IN $tissue_locations)")
+
+            if len(biospecimen_locations) > 0 and len(tissue_locations) > 0:
+
+                cypher_conditions.append("OR ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations))")
+
+            elif len(biospecimen_locations) > 0 and len(tissue_locations) == 0:
+                    
+                cypher_conditions.append("AND ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations)")
+
+            elif len(tissue_locations) > 0:
+
+                cypher_conditions.append(")")
+
+        else:
+
+            cypher_conditions.append("AND m.tissue_locations IS NOT NULL")
+
+            if len(cellular_locations) > 0:
+                cypher_conditions.append("AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)")
+
+            if len(tissue_locations) > 0:   
+                cypher_conditions.append("AND ANY(value IN m.tissue_locations WHERE value IN $tissue_locations)")
+
+            if len(biospecimen_locations) > 0:
+                cypher_conditions.append("AND ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations)")
+
+        if output == "table": 
+
+            cypher_conditions.extend([
+                """RETURN m.id as HMDB,
+                m.name as MetName,
+                p.symbol as Symbol,
+                m.cellular_locations as CellLoc,
+                m.tissue_locations as TissueLoc,
+                m.biospecimen_locations as BiospecLoc,
+                a.mode as Mode,
+                a.database as Database,
+                a.experiment as Experiment,
+                p.id as Uniprot,
+                p.protein_names as ProtName"""
+            ])
+
+            cypher_query = "\n".join(cypher_conditions)
+
+            print(cypher_query)
+
             result = tx.run(
-                """MATCH (m)-[a]->(p:Protein)
-                WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))
-                AND type(a) = "StitchMetaboliteReceptor"
-                AND NOT a.mode IN ["reaction", "catalysis", "expression", "pred_bind", "binding"]
-                AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)
-                AND (ANY(value IN m.tissue_locations WHERE value IN $tissue_locations) 
-                    OR ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations))
-                RETURN m.id as HMDB,
-                    m.name as MetName,
-                    p.symbol as Symbol,
-                    m.cellular_locations as CellLoc,
-                    m.tissue_locations as TissueLoc,
-                    m.biospecimen_locations as BiospecLoc,
-                    a.mode as Mode,
-                    a.database as Database,
-                    a.experiment as Experiment,
-                    p.id as Uniprot,
-                    p.protein_names as ProtName""",
+                cypher_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
                 cellular_locations=cellular_locations,
                 tissue_locations=tissue_locations,
                 biospecimen_locations=biospecimen_locations
             )
-
-            # return result.data()
 
             df = pd.DataFrame(result.data())
 
@@ -85,18 +131,41 @@ class Neo4jController:
             return df
         
         elif output == "graph":
+            
+            met_conditions = cypher_conditions.copy()
+
+            met_conditions.extend([
+                """RETURN m.id as id,
+                      'foundDrug' as group,
+                       m.name as label
+                    LIMIT 300"""
+            ])
+
+            prot_conditions = cypher_conditions.copy()
+
+            prot_conditions.extend([
+                """RETURN p.id as id,
+                      'gene' as group,
+                       p.symbol as label
+                    LIMIT 300"""
+            ])
+
+            edge_conditions = cypher_conditions.copy()
+
+            edge_conditions.extend([
+                """RETURN m.id as from,
+                       p.id as to,
+                       'default' as group
+                    LIMIT 300"""
+            ])
+
+
+            met_query   = "\n".join(met_conditions)
+            prot_query  = "\n".join(prot_conditions)
+            edge_query  = "\n".join(edge_conditions)
 
             metabolites = tx.run(
-                """MATCH (m)-[a]->(p:Protein)
-                WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))
-                AND type(a) = "StitchMetaboliteReceptor"
-                AND NOT a.mode IN ["reaction", "catalysis", "expression", "pred_bind", "binding"]
-                AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)
-                AND (ANY(value IN m.tissue_locations WHERE value IN $tissue_locations) 
-                    OR ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations))
-                RETURN m.id as id,
-                      'foundDrug' as group,
-                       m.name as label""",
+                met_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
                 cellular_locations=cellular_locations,
@@ -105,16 +174,7 @@ class Neo4jController:
             )
 
             proteins = tx.run(
-                """MATCH (m)-[a]->(p:Protein)
-                WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))
-                AND type(a) = "StitchMetaboliteReceptor"
-                AND NOT a.mode IN ["reaction", "catalysis", "expression", "pred_bind", "binding"]
-                AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)
-                AND (ANY(value IN m.tissue_locations WHERE value IN $tissue_locations) 
-                    OR ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations))
-                RETURN p.id as id,
-                      'gene' as group,
-                       p.symbol as label""",
+                prot_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
                 cellular_locations=cellular_locations,
@@ -123,16 +183,7 @@ class Neo4jController:
             )
 
             edges = tx.run(
-                """MATCH (m)-[a]->(p:Protein)
-                WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))
-                AND type(a) = "StitchMetaboliteReceptor"
-                AND NOT a.mode IN ["reaction", "catalysis", "expression", "pred_bind", "binding"]
-                AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)
-                AND (ANY(value IN m.tissue_locations WHERE value IN $tissue_locations) 
-                    OR ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations))
-                RETURN m.id as from,
-                       p.id as to,
-                       'default' as group""",
+                edge_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
                 cellular_locations=cellular_locations,
