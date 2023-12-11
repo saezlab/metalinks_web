@@ -1,0 +1,35 @@
+multiselect_cellloc:
+    Choose the relevant cellular location in which the metabolite should be found.
+    Available options are Cytoplasm, Endoplasmic reticulum, Extracellular, Golgi apparatus, 
+    Lysosome, Membrane, Mitochondria, Nucleus, Peroxisome.
+
+multiselect_tissue:
+    Choose the relevant tissue in which the metabolite should be found.
+    Available options are Adipose Tissue, Adrenal Cortex, Adrenal Gland, Adrenal Medulla, All Tissues,
+    Bladder, Brain, Epidermis, Fibroblasts, Heart, Intestine, 
+    Kidney, Leukocyte, Lung, Neuron, Ovary, Pancreas, Placenta,
+    Platelet, Prostate, Skeletal Muscle, Spleen, Testis, Thyroid Gland.
+
+multiselect_biospec:
+    Choose the relevant biospecimen in which the metabolite should be found.
+    Available options are Blood, Cerebrospinal Fluid, Feces, Saliva, 
+    Serum, Sweat, Urine, Bile, Amniotic Fluid.
+
+slider_database:
+    Select minimum STITCH database confidence score each interaction should have. 
+    This value is treated as OR in combination with the other cutoffs.
+    [Learn more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3245073/)
+
+slider_experiment:
+    Select minimim STITCH experiment confidence score each interaction should have.
+    This value is treated as OR in combination with the other cutoffs.
+    [Learn more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3245073/)
+
+checkbox_exo:
+    Metalinks contains a list of exogenous metabolites. 
+    Select to include these in the search results.
+
+radio_purpose:
+    You can display output either as table with a few summarizing plots and a download options,
+    or as graph to visualize the network of metabolites and their interactions.
+    The graph is limited in size and will fail to load if the number of metabolites is too large.

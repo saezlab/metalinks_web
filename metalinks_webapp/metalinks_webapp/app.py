@@ -10,6 +10,9 @@ import json
 sys.path.append('..')
 # from aux import create_graph
 import streamlit.components.v1 as components
+import yaml
+with open("data/help_texts.yaml", 'r') as stream:
+    help_texts = yaml.safe_load(stream)
 
 st.set_page_config(page_title='Metalinks Web App', layout='wide')
 
@@ -37,31 +40,37 @@ n4j = Neo4jController(
     st.secrets["neo4j_password"],
 )
 
+help_celloc = help_texts['multiselect_cellloc']
 st.sidebar.write("Select your parameters for contextualization")
-# cellular_locations = st.sidebar.text_input("Enter cellular locations (separated by commas)", "Extracellular, Cytoplasm")
 cellular_locations = st.sidebar.multiselect("Select cellular locations", 
                                             ["Cytoplasm", "Endoplasmic reticulum", "Extracellular", "Golgi apparatus", 
                                             "Lysosome", "Membrane", "Mitochondria", "Nucleus", "Peroxisome"], 
-                                            default=["Extracellular"]
+                                            default=["Extracellular"], help=help_celloc
                                               )
 
+help_tissueloc = help_texts['multiselect_tissue']    
 tissue_locations = st.sidebar.multiselect('Select tissue locations', ["Adipose Tissue", "Adrenal Cortex", "Adrenal Gland", "Adrenal Medulla", "All Tissues",
                                                                      "Bladder", "Brain", "Epidermis", "Fibroblasts", "Heart", "Intestine", 
                                                                      "Kidney", "Leukocyte", "Lung", "Neuron", "Ovary", "Pancreas", "Placenta",
                                                                       "Platelet", "Prostate", "Skeletal Muscle", "Spleen", "Testis", "Thyroid Gland"],
-                                                                      default=["Kidney", "All Tissues"])
+                                                                      default=["Kidney", "All Tissues"], help=help_tissueloc)
 
+help_biospecloc = help_texts['multiselect_biospec']
 biospecimen_locations = st.sidebar.multiselect('Select biospecimen locations', ['Blood', 'Urine', 'Saliva', 'Cerebrospinal Fluid',
                                                                                 'Feces', 'Sweat', 'Breast Milk', 'Bile', 'Amniotic Fluid'],
-                                                                                default=['Blood'] )
+                                                                                default=['Blood'], help=help_biospecloc )
 
-database_cutoff = st.sidebar.slider("Select cutoff for STITCH database score", 0, 1000, 993)
+help_db_cutoff = help_texts['slider_database']
+database_cutoff = st.sidebar.slider("Select cutoff for STITCH database score", 0, 1000, 993, help=help_db_cutoff)
 
-experiment_cutoff = st.sidebar.slider("Select cutoff for STITCH experimental score", 0, 1000, 993)
+help_exp_cutoff = help_texts['slider_experiment']
+experiment_cutoff = st.sidebar.slider("Select cutoff for STITCH experimental score", 0, 1000, 993, help=help_exp_cutoff)
 
-include_exo = st.sidebar.checkbox("Include exogenous metabolites", value=False)
+help_exo = help_texts['checkbox_exo']
+include_exo = st.sidebar.checkbox("Include exogenous metabolites", value=False, help=help_exo)
 
-selected_purpose = st.sidebar.radio("Select purpose", ["Table", "Graph"])
+help_purpose = help_texts['radio_purpose']
+selected_purpose = st.sidebar.radio("Select purpose", ["Table", "Graph"], help=help_purpose)
 
 
 if st.sidebar.button("Retrieve"):
