@@ -15,6 +15,14 @@ multiselect_biospec:
     Available options are Blood, Cerebrospinal Fluid, Feces, Saliva, 
     Serum, Sweat, Urine, Bile, Amniotic Fluid.
 
+multiselect_disease:
+    Choose the relevant disease in which the metabolite should be found.
+    See available option in Github repository.
+
+multiselect_pathway:
+    Choose the relevant pathway in which the metabolite should be found.
+    See available option in Github repository.
+
 slider_database:
     Select minimum STITCH database confidence score each interaction should have. 
     This value is treated as OR in combination with the other cutoffs.
@@ -22,6 +30,16 @@ slider_database:
 
 slider_experiment:
     Select minimim STITCH experiment confidence score each interaction should have.
+    This value is treated as OR in combination with the other cutoffs.
+    [Learn more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3245073/)
+
+slider_prediction:
+    Select minimim STITCH prediction confidence score each interaction should have.
+    This value is treated as OR in combination with the other cutoffs.
+    [Learn more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3245073/)
+
+slider_combined:
+    Select minimim STITCH combined confidence score each interaction should have.
     This value is treated as OR in combination with the other cutoffs.
     [Learn more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3245073/)
 

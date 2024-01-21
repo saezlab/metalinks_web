@@ -22,8 +22,12 @@ class Neo4jController:
     cellular_locations,
     tissue_locations,
     biospecimen_locations,
+    diseases,
+    pathways,
     database_cutoff,
     experiment_cutoff, 
+    prediction_cutoff,
+    combined_cutoff,
     include_exo,
     output="table"
 ):
@@ -33,8 +37,12 @@ class Neo4jController:
                 cellular_locations,
                 tissue_locations,
                 biospecimen_locations,
+                diseases,
+                pathways,
                 database_cutoff,
                 experiment_cutoff, 
+                prediction_cutoff,
+                combined_cutoff,
                 include_exo,
                 output
             )
@@ -47,15 +55,19 @@ class Neo4jController:
         cellular_locations,
         tissue_locations,
         biospecimen_locations,
+        diseases,
+        pathways,
         database_cutoff,
         experiment_cutoff, 
+        prediction_cutoff,
+        combined_cutoff,
         include_exo,
         output
     ):
         
         cypher_conditions = [
             "MATCH (m)-[a]->(p:Protein)",
-            "WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment))",
+            "WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment) OR ($prediction_cutoff <= a.prediction) OR $combined_cutoff <= a.combined_score) ",
             "AND type(a) = 'StitchMetaboliteReceptor'",
             "AND NOT a.mode IN ['reaction', 'catalysis', 'expression', 'pred_bind', 'binding']",
         ]
@@ -65,6 +77,12 @@ class Neo4jController:
 
             if len(cellular_locations) > 0:
                 cypher_conditions.append("AND ANY(value IN m.cellular_locations WHERE value IN $cellular_locations)")
+
+            if len(diseases) > 0:
+                cypher_conditions.append("AND ANY(value IN m.diseases WHERE value IN $diseases)")
+
+            if len(pathways) > 0:
+                cypher_conditions.append("AND ANY(value IN m.pathways WHERE value IN $pathways)")
 
             if len(tissue_locations) > 0:   
 
@@ -95,6 +113,12 @@ class Neo4jController:
             if len(biospecimen_locations) > 0:
                 cypher_conditions.append("AND ANY(value IN m.biospecimen_locations WHERE value IN $biospecimen_locations)")
 
+            if len(diseases) > 0:
+                cypher_conditions.append("AND ANY(value IN m.diseases WHERE value IN $diseases)")
+
+            if len(pathways) > 0:
+                cypher_conditions.append("AND ANY(value IN m.pathways WHERE value IN $pathways)")
+
         if output == "table": 
 
             cypher_conditions.extend([
@@ -104,9 +128,13 @@ class Neo4jController:
                 m.cellular_locations as CellLoc,
                 m.tissue_locations as TissueLoc,
                 m.biospecimen_locations as BiospecLoc,
+                m.diseases as Diseases,
+                m.pathways as Pathways,
                 a.mode as Mode,
                 a.database as Database,
                 a.experiment as Experiment,
+                a.prediction as Prediction,
+                a.combined_score as Combined,
                 p.id as Uniprot,
                 p.protein_names as ProtName"""
             ])
@@ -119,9 +147,13 @@ class Neo4jController:
                 cypher_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
+                prediction_cutoff=prediction_cutoff,
+                combined_cutoff=combined_cutoff,
                 cellular_locations=cellular_locations,
                 tissue_locations=tissue_locations,
-                biospecimen_locations=biospecimen_locations
+                biospecimen_locations=biospecimen_locations,
+                diseases=diseases,
+                pathways=pathways,
             )
 
             df = pd.DataFrame(result.data())
@@ -168,27 +200,39 @@ class Neo4jController:
                 met_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
+                prediction_cutoff=prediction_cutoff,
+                combined_cutoff=combined_cutoff,
                 cellular_locations=cellular_locations,
                 tissue_locations=tissue_locations,
-                biospecimen_locations=biospecimen_locations
+                biospecimen_locations=biospecimen_locations,
+                diseases=diseases,
+                pathways=pathways,
             )
 
             proteins = tx.run(
                 prot_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
+                prediction_cutoff=prediction_cutoff,
+                combined_cutoff=combined_cutoff,
                 cellular_locations=cellular_locations,
                 tissue_locations=tissue_locations,
-                biospecimen_locations=biospecimen_locations
+                biospecimen_locations=biospecimen_locations,
+                diseases=diseases,
+                pathways=pathways,
             )
 
             edges = tx.run(
                 edge_query,
                 database_cutoff=database_cutoff,
                 experiment_cutoff=experiment_cutoff,
+                prediction_cutoff=prediction_cutoff,
+                combined_cutoff=combined_cutoff,
                 cellular_locations=cellular_locations,
                 tissue_locations=tissue_locations,
-                biospecimen_locations=biospecimen_locations
+                biospecimen_locations=biospecimen_locations,
+                diseases=diseases,
+                pathways=pathways,
             )
 
             return metabolites.data(), proteins.data(), edges.data()
