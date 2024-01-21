@@ -243,8 +243,12 @@ if st.sidebar.button("Retrieve"):
             cellular_locations,
             tissue_locations,
             biospecimen_locations,
+            diseases,
+            pathways,
             database_cutoff,
             experiment_cutoff, 
+            prediction_cutoff,
+            combined_cutoff,
             include_exo,
             output="graph")
     
