@@ -163,11 +163,69 @@ if st.sidebar.button("Retrieve"):
 
 
         subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore'}, inplace=True)
+        
+        # convert protein hmdb and uniprot to links
+        subgraph['HMDB'] = subgraph['HMDB'].apply(lambda x: f'https://hmdb.ca/metabolites/{x}')
+        subgraph['Uniprot'] = [x.split(':')[1] for x in subgraph['Uniprot']]
+        subgraph['Uniprot'] = subgraph['Uniprot'].apply(lambda x: f"https://www.uniprot.org/uniprot/{x}")
 
+        #reorder columns that Uniprot column is in the fourth position
+        subgraph = subgraph[[ 'MetName','HMDB', 'Protein', 'Uniprot', 'ProtName', 'CellLoc', 'TissueLoc', 'BiospecLoc', 'Diseases', 'Pathways', 'DatabaseScore', 'ExperimentalScore',
+       'Prediction', 'Combined']]
+        
         my_bar.progress(100, text='DONE')
         my_bar.empty()
 
-        st.dataframe(subgraph)
+        # N = 15
+
+        # st.session_state['page_number'] = 0
+
+        # last_page = len(subgraph) // N
+
+        # prev, _ ,next = st.columns([2, 10, 1])
+
+        
+        # if next.button("Next"):
+
+        #     if st.session_state['page_number'] + 1 > last_page:
+        #         st.session_state['page_number'] = 0
+        #     else:
+        #         st.session_state['page_number'] += 1
+
+        # if prev.button("Previous"):
+
+        #     if st.session_state['page_number'] - 1 < 0:
+        #         st.session_state['page_number'] = last_page
+        #     else:
+        #         st.session_state['page_number'] -= 1
+
+        # # Get start and end indices of the next page of the dataframe
+        # start_idx = st.session_state['page_number'] * N 
+        # end_idx = (1 + st.session_state['page_number']) * N
+
+        # # Index into the sub dataframe
+        # subgraph = subgraph.iloc[start_idx:end_idx]
+
+
+        st.data_editor(
+            subgraph,
+            column_config={
+            'HMDB': st.column_config.LinkColumn(
+                'HMDB', 
+                help="The top trending Streamlit apps",
+                display_text="https://hmdb\.ca/metabolites/(HMDB\d+)", 
+            ),
+            'Uniprot': st.column_config.LinkColumn(
+                'Uniprot', 
+                help="The top trending Streamlit apps",
+                display_text="https://www\.uniprot\.org/uniprot/(.*)", 
+            ),
+
+
+            }
+        )
+
+        # st.dataframe(subgraph)
         
         # Download button
         csv = subgraph.to_csv(index=False)
@@ -278,7 +336,7 @@ if st.sidebar.button("Retrieve"):
                 showSidebar: "right",
                 showOverview: true,
                 showQuery: true,
-                showItemSelector: true,
+                showItemSelector: false,
                 showSimpleAnalysis: false,
                 showAdvAnalysis: false,
                 showConnectGenes: false,
