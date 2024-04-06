@@ -135,6 +135,9 @@ include_exo = st.sidebar.checkbox("Include exogenous metabolites", value=False, 
 help_purpose = help_texts['radio_purpose']
 selected_purpose = st.sidebar.radio("Select purpose", ["Table", "Graph"], help=help_purpose)
 
+if selected_purpose == "Table":
+
+    number = st.sidebar.number_input("Maximum rows to display in table", value=100)
 
 if st.sidebar.button("Retrieve"):
 
@@ -162,7 +165,9 @@ if st.sidebar.button("Retrieve"):
         my_bar.progress(80, text='PROCESSING')
 
 
-        subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore'}, inplace=True)
+        subgraph.rename(columns={'Symbol': 'Protein', 'Database': 'DatabaseScore', 'Experiment': 'ExperimentalScore',
+                                'CellLoc': 'Cellular Location', 'TissueLoc': 'Tissue Location', 'BiospecLoc': 'Biospecimen Location',
+                                 }, inplace=True)
         
         # convert protein hmdb and uniprot to links
         subgraph['HMDB'] = subgraph['HMDB'].apply(lambda x: f'https://hmdb.ca/metabolites/{x}')
@@ -170,45 +175,19 @@ if st.sidebar.button("Retrieve"):
         subgraph['Uniprot'] = subgraph['Uniprot'].apply(lambda x: f"https://www.uniprot.org/uniprot/{x}")
 
         #reorder columns that Uniprot column is in the fourth position
-        subgraph = subgraph[[ 'MetName','HMDB', 'Protein', 'Uniprot', 'ProtName', 'CellLoc', 'TissueLoc', 'BiospecLoc', 'Diseases', 'Pathways', 'DatabaseScore', 'ExperimentalScore',
+        subgraph = subgraph[[ 'MetName','HMDB', 'Protein', 'Uniprot', 'ProtName', 'Cellular Location', 'Tissue Location', 'Biospecimen Location', 'Diseases', 'Pathways', 'DatabaseScore', 'ExperimentalScore',
        'Prediction', 'Combined']]
         
         my_bar.progress(100, text='DONE')
         my_bar.empty()
 
-        # N = 15
+        subgraph_table = subgraph
 
-        # st.session_state['page_number'] = 0
-
-        # last_page = len(subgraph) // N
-
-        # prev, _ ,next = st.columns([2, 10, 1])
-
-        
-        # if next.button("Next"):
-
-        #     if st.session_state['page_number'] + 1 > last_page:
-        #         st.session_state['page_number'] = 0
-        #     else:
-        #         st.session_state['page_number'] += 1
-
-        # if prev.button("Previous"):
-
-        #     if st.session_state['page_number'] - 1 < 0:
-        #         st.session_state['page_number'] = last_page
-        #     else:
-        #         st.session_state['page_number'] -= 1
-
-        # # Get start and end indices of the next page of the dataframe
-        # start_idx = st.session_state['page_number'] * N 
-        # end_idx = (1 + st.session_state['page_number']) * N
-
-        # # Index into the sub dataframe
-        # subgraph = subgraph.iloc[start_idx:end_idx]
-
+        if subgraph.shape[0] > number:
+            subgraph_table = subgraph.head(number)
 
         st.data_editor(
-            subgraph,
+            subgraph_table,
             column_config={
             'HMDB': st.column_config.LinkColumn(
                 'HMDB', 
@@ -259,7 +238,7 @@ if st.sidebar.button("Retrieve"):
 
         # Bar chart - CellLoc
         with col2:
-            cellloc_counts = subgraph['CellLoc'].explode().value_counts()
+            cellloc_counts = subgraph['Cellular Location'].explode().value_counts()
             cellloc_percentages = cellloc_counts / len(subgraph) * 100
 
             fig_cellloc, ax_cellloc = plt.subplots(figsize=(6, 4), facecolor='white')
@@ -271,7 +250,7 @@ if st.sidebar.button("Retrieve"):
 
         # Bar chart - TissueLoc
         with col3:
-            tissueloc_counts = subgraph['TissueLoc'].explode().value_counts()
+            tissueloc_counts = subgraph['Tissue Location'].explode().value_counts()
             tissueloc_percentages = tissueloc_counts / len(subgraph) * 100
 
             fig_tissueloc, ax_tissueloc = plt.subplots(figsize=(6, 4), facecolor='white')
@@ -283,7 +262,7 @@ if st.sidebar.button("Retrieve"):
 
         # Bar chart - BiospecLoc
         with col4:
-            biospecloc_counts = subgraph['BiospecLoc'].explode().value_counts()
+            biospecloc_counts = subgraph['Biospecimen Location'].explode().value_counts()
             biospecloc_percentages = biospecloc_counts / len(subgraph) * 100
 
             fig_biospecloc, ax_biospecloc = plt.subplots(figsize=(6, 4), facecolor='white')
@@ -315,7 +294,7 @@ if st.sidebar.button("Retrieve"):
         
         html_code = ''' 
         <head>
-            <script src="https://github.com/saezlab/MetalinksDB/tree/main/Data/drugstone.js"></script>
+            <script src="https://cdn.drugst.one/latest/drugstone.js"></script>
             <link rel="stylesheet" href="https://cdn.drugst.one/latest/styles.css">
 
         </head>
@@ -324,9 +303,27 @@ if st.sidebar.button("Retrieve"):
             id='drugstone-component-id'
             groups='{
                 "nodeGroups":{
-                "gene":{"type":"gene","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Protein","shape":"circle"},
-                "foundDrug":{"type":"drug","color":"#932a61","font":{"color":"#000000"},"groupName":"Metabolite","shape":"diamond"}},
-                "edgeGroups":{"default":{"color":"#000000","groupName":"default edge"}, "metabolite":{"type":"drug","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Metabolite-Receptor Interaction","shape":"diamond"}}}'
+                    "gene":{"type":"protein",
+                            "color":"#512D55",
+                            "font":{"color":"#f0f0f0"},
+                            "groupName":"Protein","shape":"circle"},
+                    "foundDrug":{"type":"metabolite",
+                                "color":"#932a61",
+                                "font":{"color":"#000000"},
+                                "groupName":"Metabolite",
+                                "shape":"diamond"},
+                    "metabolite":{"type":"drug",
+                                    "color":"#932a61",
+                                    "font":{"color":"#f0f0f0"},
+                                    "groupName":"Metabolite",
+                                    "shape":"diamond"}
+                                },
+
+                "edgeGroups":{
+                    "default":{"color":"#000000","groupName":"default edge"},
+                    
+                            }
+                    }'
             config='{
                 "identifier":"symbol",
                 "title":"MetalinksKG - metabolite-mediated cell-cell communication",
