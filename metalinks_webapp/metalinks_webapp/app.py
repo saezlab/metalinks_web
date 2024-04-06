@@ -315,19 +315,18 @@ if st.sidebar.button("Retrieve"):
         
         html_code = ''' 
         <head>
-            <script src="https://cdn.drugst.one/latest/drugstone.js"></script>
+            <script src="https://github.com/saezlab/MetalinksDB/tree/main/Data/drugstone.js"></script>
             <link rel="stylesheet" href="https://cdn.drugst.one/latest/styles.css">
+
         </head>
 
         <drugst-one
             id='drugstone-component-id'
             groups='{
                 "nodeGroups":{
-                "gene":{"type":"gene","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Gene","shape":"circle"},
-                "foundDrug":{"type":"drug","color":"#932a61","font":{"color":"#000000"},"groupName":"Drug","shape":"diamond"}},
-                "edgeGroups":{"default":{"color":"#000000","groupName":"default edge"},
-                "metabolite":{"type":"drug","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Drug","shape":"diamond"}
-                }}'
+                "gene":{"type":"gene","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Protein","shape":"circle"},
+                "foundDrug":{"type":"drug","color":"#932a61","font":{"color":"#000000"},"groupName":"Metabolite","shape":"diamond"}},
+                "edgeGroups":{"default":{"color":"#000000","groupName":"default edge"}, "metabolite":{"type":"drug","color":"#512D55","font":{"color":"#f0f0f0"},"groupName":"Metabolite-Receptor Interaction","shape":"diamond"}}}'
             config='{
                 "identifier":"symbol",
                 "title":"MetalinksKG - metabolite-mediated cell-cell communication",
