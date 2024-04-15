@@ -67,9 +67,10 @@ class Neo4jController:
         
         cypher_conditions = [
             "MATCH (m)-[a]->(p:Protein)",
-            "WHERE (($database_cutoff <= a.database) OR ($experiment_cutoff <= a.experiment) OR ($prediction_cutoff <= a.prediction) OR $combined_cutoff <= a.combined_score) ",
-            "AND type(a) = 'StitchMetaboliteReceptor'",
-            "AND NOT a.mode IN ['reaction', 'catalysis', 'expression', 'pred_bind', 'binding']",
+            "WHERE type(a) IN ['CellinkerMetaboliteReceptor', 'ScconnectMetaboliteReceptor', 'StitchMetaboliteReceptor', 'NeuronchatMetaboliteReceptor', 'CellphoneMetaboliteReceptor']",
+            "AND (($database_cutoff >= 200 OR $experiment_cutoff >= 300 OR $prediction_cutoff >= 700 OR $combined_cutoff >= 900) OR (type(a) <> 'StitchMetaboliteReceptor'))",
+            "AND ((p.receptor_type in ['catalytic_receptor', 'gpcr', 'nhr']) OR ((p.receptor_type in ['lgic',  'other_ic', 'transporter', 'vgic'] AND a.mode in ['activation', 'inhibition'])))",
+            "AND NOT a.mode in ['reaction', 'catalysis', 'expression']"
         ]
 
         if include_exo:
